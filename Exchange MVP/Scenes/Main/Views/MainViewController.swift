@@ -8,12 +8,14 @@
 import UIKit
 
 protocol ViewProtocol: AnyObject {
-    func updateView(_ viewModel: ViewModel)
+    func updateView(_ viewModel: ViewModel, _ topRate: String)
+    func updateSecondCollectionView(_ viewModel: ViewModel)
+    func showAlert(result: String)
 }
 
 final class MainViewController: UIViewController {
     
-// объекты верхнего и нижнего СollectionView
+    // объекты верхнего и нижнего СollectionView
     private lazy var firstCollectionView: CustomCollectionView = {
         let colletionView = CustomCollectionView()
         colletionView.delegate = self
@@ -34,30 +36,49 @@ final class MainViewController: UIViewController {
     private var topIndex = 0 // индекс верхней ячейки
     private var bottomIndex = 0
     private var topValue: Double? //значение верхнего textField
-
+    
     var presenter: PresenterProtocol?
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupViewController()
-        
     }
     
     @objc func didTapBarButton() {
         print(#function)
+        presenter?.exchangeCurrency(topValue: topValue,
+                                    topIndex: topIndex,
+                                    bottomIndex: bottomIndex)
     }
 }
 
 // MARK: - ViewProtocol Impl
 extension MainViewController: ViewProtocol {
-   
-    func updateView(_ viewModel: ViewModel) {
+    func showAlert(result: String) {
+        let alert = UIAlertController(title: "Notification",
+                                      message: result,
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK",
+                                      style: .default))
+        present(alert, animated: true)
+        
+        presenter?.fetchRates(topIndex: topIndex, bottomIndex: bottomIndex)
+    }
+    
+    func updateView(_ viewModel: ViewModel,_ topRate: String) {
         self.viewModel = viewModel
+        self.topValue = nil
+        title = topRate
         firstCollectionView.reloadData()
+        secondCollectionView.reloadData()
+        print(#function)
+    }
+    
+    func updateSecondCollectionView(_ viewModel: ViewModel) {
+        self.viewModel = viewModel
         secondCollectionView.reloadData()
     }
 }
-
 
 //MARK: - UICollectionViewDataSource
 extension MainViewController: UICollectionViewDataSource {
@@ -99,11 +120,17 @@ extension MainViewController: UICollectionViewDelegate {
 
 // MARK: - CustomCellDelegate Impl
 extension MainViewController: CustomCellDelegate {
-    func didEditText(_ value: Double) {
+    func didEditText(_ value: Double, _ isTop: Bool) {
         topValue = value
-        presenter?.fetch(topIndex: topIndex,
-                         bottomIndex: bottomIndex,
-                         topValue: topValue ?? 0)
+        print(isTop)
+        if isTop == true {
+            presenter?.fetchRatesAndValues(topIndex: topIndex,
+                                           bottomIndex: bottomIndex,
+                                           topValue: topValue ?? 0)
+        } else {
+            print(isTop)
+        }
+        
     }
 }
 
@@ -124,19 +151,15 @@ extension MainViewController: UIScrollViewDelegate {
                   }
             bottomIndex = indexPath.item
         }
-        print("topIndex: \(topIndex), bottomIndex: \(bottomIndex)")
-        
         presenter?.fetchRates(topIndex: topIndex, bottomIndex: bottomIndex)
     }
 }
-
 
 // MARK: - Private methods
 private extension MainViewController {
     
     func setupViewController() {
         view.backgroundColor = .systemBackground
-        title = "Title"
         setupBarButton()
         setupCollectionViews()
         presenter?.loadData()

@@ -104,7 +104,7 @@ extension EndPoint: TargetType {
         }
     }
     
-    // "http://api.exchangeratesapi.io/latest?access_key=7e9f2e1f655a573e5189f16d2cb00a85"
+    //"http://api.exchangeratesapi.io/latest?access_key=7e9f2e1f655a573e5189f16d2cb00a85"
     var baseUrl: String {
         switch self {
         case .fetchRates,

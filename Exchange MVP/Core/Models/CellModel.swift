@@ -12,4 +12,5 @@ struct CellModel {
     var rate: String
     var currency: String
     var value: Double?
+    var isTop: Bool
 }

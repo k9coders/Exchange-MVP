@@ -8,7 +8,7 @@
 import UIKit
 
 protocol CustomCellDelegate: AnyObject {
-    func didEditText(_ value: Double)
+    func didEditText(_ value: Double, _ isTop: Bool)
 }
 
 final class CustomCell: UICollectionViewCell {
@@ -19,6 +19,9 @@ final class CustomCell: UICollectionViewCell {
     var currentBalanceLabel = UILabel()
     var exchangeRateLabel = UILabel()
     var amountTextField = UITextField()
+    var isTop = Bool()
+    
+
     
     weak var delegate: CustomCellDelegate?
     
@@ -37,16 +40,20 @@ final class CustomCell: UICollectionViewCell {
     
     @objc func textFieldDidChange() {
         let value = Double(amountTextField.text ?? "") ?? 0.0
-        delegate?.didEditText(value)
+        delegate?.didEditText(value, isTop)
     }
 }
 
 // MARK: - UITextFieldDelegate Impl
 extension CustomCell: UITextFieldDelegate {
-    
-//    func textFieldDidChangeSelection(_ textField: UITextField) {
-//        let value = Double(textField.text ?? "") ?? 0.0
-//        delegate?.didEditText(value)
+//
+//    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+//        let text = (textField.text as NSString?)?.replacingCharacters(in: range, with: string) ?? string
+//        guard textField.text?.count ?? 0 >= 1 else {
+//            textField.text = "-\(text)"
+//            return false
+//        }
+//        return true
 //    }
 }
 //MARK: - public method
@@ -60,6 +67,8 @@ extension CustomCell {
         } else {
             amountTextField.text = nil
         }
+        isTop = model.isTop
+//        amountTextField.isUserInteractionEnabled = model.isTop
     }
 }
 
@@ -102,6 +111,7 @@ private extension CustomCell {
         amountTextField.textAlignment = .right
         amountTextField.keyboardType = .numberPad
         amountTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        amountTextField.delegate =  self
     }
     
     func setConstraints() {
