@@ -13,7 +13,9 @@ protocol PresenterProtocol {
     func loadData()
     func setUserDefaults()
     func fetchRates(topIndex: Int, bottomIndex: Int)
-    func fetchRatesAndValues(topIndex: Int, bottomIndex: Int, topValue: Double)
+    
+    func fetchRatesAndValuesFromTop(topIndex: Int, bottomIndex: Int, topValue: Double?)
+    func fetchRatesAndValuesFromBottom(topIndex: Int, bottomIndex: Int, bottomValue: Double?)
     func exchangeCurrency(topValue: Double?, topIndex: Int, bottomIndex: Int)
 }
 
@@ -24,7 +26,14 @@ final class MainPresenter {
     
     private let networkService: Networkable
     private var rates: RateModel?
+    private var firstValue: Double?// результат вычисления значения верхнего textField (bottomValue * rate)
     private var secondValue: Double?
+    
+    private var topIndex = 0 // индекс верхней ячейки
+    private var bottomIndex = 0
+    private var topValue: Double? //значение верхнего textField
+    private var bottomValue: Double?
+    private var isTop = false
     
     private var myBalance: [AccountModel] = []
     
@@ -37,6 +46,31 @@ final class MainPresenter {
 
 // MARK: - PresenterProtocol Impl
 extension MainPresenter: PresenterProtocol {
+    
+    func loadData() {
+        networkService.request(target: EndPoint.fetchRates, type: NetworkModel.self) { [weak self] result in
+            switch result {
+            case .success(let response):
+                self?.rates = response.rates
+                self?.updateCells()
+                print(response.rates)
+            case .failure(let error):
+                print(error.localizedDescription)
+            }
+        }
+    }
+    
+    // устанавливаем значения userDefaults
+    func setUserDefaults() {
+        let balance = UserDefaults.standard.bool(forKey: "isFirstStart")
+        if balance == false {
+            UserDefaults.standard.set(100.0, forKey: "EUR")
+            UserDefaults.standard.set(100.0, forKey: "USD")
+            UserDefaults.standard.set(100.0, forKey: "GBP")
+            UserDefaults.standard.set(true, forKey: "isFirstStart")
+        }
+    }
+    
     func exchangeCurrency(topValue: Double?, topIndex: Int, bottomIndex: Int) {
         
         guard topValue != nil else {
@@ -74,24 +108,15 @@ extension MainPresenter: PresenterProtocol {
         view?.showAlert(result: result)
     }
     
-    // устанавливаем значения userDefaults
-    func setUserDefaults() {
-        let balance = UserDefaults.standard.bool(forKey: "isFirstStart")
-        if balance == false {
-            UserDefaults.standard.set(100.0, forKey: "EUR")
-            UserDefaults.standard.set(100.0, forKey: "USD")
-            UserDefaults.standard.set(100.0, forKey: "GBP")
-            UserDefaults.standard.set(true, forKey: "isFirstStart")
-        }
-    }
-    
     //метод считает введенное value по rates и обновляет нижний collectionView
-    func fetchRatesAndValues(topIndex: Int, bottomIndex: Int,  topValue: Double) {
+    func fetchRatesAndValuesFromTop(topIndex: Int, bottomIndex: Int,  topValue: Double?) {
+        isTop = true
+        self.topValue = topValue
         //создаем объект верхней и нижней ячейки
         let topCurrency = myBalance[topIndex].currency
         let bottomCurrency = myBalance[bottomIndex].currency
         
-        //определяем rate активной ячейки верзнего и нижнего view
+        //определяем rate активной ячейки верхнего и нижнего view
         let fromRate = fetchRateValue(from: topCurrency)
         let toRate = fetchRateValue(from: bottomCurrency)
         
@@ -100,27 +125,70 @@ extension MainPresenter: PresenterProtocol {
         
         let topRate = "1\(topCurrency.currencyCharacter) - \(top)\(bottomCurrency.currencyCharacter)"
         let bottomRate = "1\(bottomCurrency.currencyCharacter) - \(bottom)\(topCurrency.currencyCharacter)"
-        print(topRate)
-        print(bottomRate)
         
         let first = fetchViewModel(currentIndex: topIndex,
                                    currentRate: topRate,
                                    currentValue: topValue,
                                    isTop: true)
-        self.secondValue = topValue * (toRate / fromRate)
+        
+        if let topValue = topValue {
+            secondValue = topValue * (toRate / fromRate)
+        } else {
+            secondValue = nil
+        }
+        //self.secondValue = topValue * (toRate / fromRate)
         let second = fetchViewModel(currentIndex: bottomIndex,
                                     currentRate: bottomRate,
                                     currentValue: secondValue,
                                     isTop: false)
         
         let viewModel = ViewModel(first: first, second: second)
-        
+
         view?.updateSecondCollectionView(viewModel)
+    }
+    
+    //метод считает введенное value по rates и обновляет верхний collectionView
+    func fetchRatesAndValuesFromBottom(topIndex: Int, bottomIndex: Int, bottomValue: Double?) {
+        //создаем объект верхней и нижней ячейки
+        isTop = false
+        self.bottomValue = bottomValue
+        let topCurrency = myBalance[topIndex].currency
+        let bottomCurrency = myBalance[bottomIndex].currency
+        
+        //определяем rate активной ячейки верхнего и нижнего view
+        let fromRate = fetchRateValue(from: topCurrency)
+        let toRate = fetchRateValue(from: bottomCurrency)
+        
+        let top = String(format: "%.2f", toRate / fromRate)
+        let bottom = String(format: "%.2f", fromRate / toRate)
+        
+        let topRate = "1\(topCurrency.currencyCharacter) - \(top)\(bottomCurrency.currencyCharacter)"
+        let bottomRate = "1\(bottomCurrency.currencyCharacter) - \(bottom)\(topCurrency.currencyCharacter)"
+        
+        if let bottomValue = bottomValue {
+            firstValue = bottomValue * (fromRate / toRate)
+        } else {
+            firstValue = nil
+        }
+        
+        let first = fetchViewModel(currentIndex: topIndex,
+                                   currentRate: topRate,
+                                   currentValue: firstValue,
+                                   isTop: true)
+    
+        let second = fetchViewModel(currentIndex: bottomIndex,
+                                    currentRate: bottomRate,
+                                    currentValue: bottomValue,
+                                    isTop: false)
+        
+        let viewModel = ViewModel(first: first, second: second)
+
+        view?.updateFirstCollectionView(viewModel)
     }
     
     //метод обновляет все collectionView и расчитывает rates, при скролле
     func fetchRates(topIndex: Int, bottomIndex: Int) {
-        //создаем объект верзней и нижней ячейки
+        //создаем объект верхней и нижней ячейки
         let topCurrency = myBalance[topIndex].currency
         let bottomCurrency = myBalance[bottomIndex].currency
         
@@ -141,19 +209,6 @@ extension MainPresenter: PresenterProtocol {
         let viewModel = ViewModel(first: first, second: second)
         
         view?.updateView(viewModel, topRate)
-    }
-    
-    func loadData() {
-        networkService.request(target: EndPoint.fetchRates, type: NetworkModel.self) { [weak self] result in
-            switch result {
-            case .success(let response):
-                self?.rates = response.rates
-                self?.updateCells()
-                print(response.rates)
-            case .failure(let error):
-                print(error.localizedDescription)
-            }
-        }
     }
 }
 

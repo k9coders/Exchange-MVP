@@ -8,7 +8,8 @@
 import UIKit
 
 protocol CustomCellDelegate: AnyObject {
-    func didEditText(_ value: Double, _ isTop: Bool)
+    func didEditTextTop(_ value: Double?)
+    func didEditTextBottom(_ value: Double?)
 }
 
 final class CustomCell: UICollectionViewCell {
@@ -19,19 +20,16 @@ final class CustomCell: UICollectionViewCell {
     var currentBalanceLabel = UILabel()
     var exchangeRateLabel = UILabel()
     var amountTextField = UITextField()
-    var isTop = Bool()
     
-
+    private var isTop = false
     
     weak var delegate: CustomCellDelegate?
     
     
     override init(frame: CGRect) {
         super.init(frame: frame)
-       
         setupView()
         setConstraints()
-      
     }
     
     required init?(coder: NSCoder) {
@@ -39,36 +37,51 @@ final class CustomCell: UICollectionViewCell {
     }
     
     @objc func textFieldDidChange() {
-        let value = Double(amountTextField.text ?? "") ?? 0.0
-        delegate?.didEditText(value, isTop)
+        let stringValue = amountTextField.text?.filter({ $0 != "-" && $0 != "+" })
+        let value = Double(stringValue ?? "")
+        if isTop {
+            delegate?.didEditTextTop(value)
+        } else {
+            delegate?.didEditTextBottom(value)
+        }
+        guard let text = amountTextField.text else {
+            return
+        }
+        let sign: Character = isTop ? "-" : "+"
+        
+        if text.count >= 1 {
+            if text.first != sign {
+                amountTextField.text = "\(sign)\(text)"
+            } else {
+                if text.count == 1 {
+                    amountTextField.text = ""
+                }
+            }
+        } else {
+            amountTextField.text = ""
+        }
     }
 }
 
 // MARK: - UITextFieldDelegate Impl
 extension CustomCell: UITextFieldDelegate {
-//
-//    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-//        let text = (textField.text as NSString?)?.replacingCharacters(in: range, with: string) ?? string
-//        guard textField.text?.count ?? 0 >= 1 else {
-//            textField.text = "-\(text)"
-//            return false
-//        }
-//        return true
-//    }
+
 }
 //MARK: - public method
 extension CustomCell {
+    
     func setupCell(with model: CellModel) {
+        isTop = model.isTop
         currencyNameLabel.text = model.currency
         currentBalanceLabel.text = model.balance
         exchangeRateLabel.text = model.rate
+
         if let value = model.value {
-            amountTextField.text = String(format: "%.2f", value)
+            let sign: Character = isTop ? "-" : "+"
+            amountTextField.text = "\(sign)\(String(format: "%.2f", value))"
         } else {
             amountTextField.text = nil
         }
-        isTop = model.isTop
-//        amountTextField.isUserInteractionEnabled = model.isTop
     }
 }
 

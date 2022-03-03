@@ -3,12 +3,13 @@
 //  Exchange MVP
 //
 //  Created by Oleg Shum on 09.02.2022.
-//
+// 
 
 import UIKit
 
 protocol ViewProtocol: AnyObject {
     func updateView(_ viewModel: ViewModel, _ topRate: String)
+    func updateFirstCollectionView(_ viewModel: ViewModel)
     func updateSecondCollectionView(_ viewModel: ViewModel)
     func showAlert(result: String)
 }
@@ -36,6 +37,7 @@ final class MainViewController: UIViewController {
     private var topIndex = 0 // индекс верхней ячейки
     private var bottomIndex = 0
     private var topValue: Double? //значение верхнего textField
+    private var bottomValue: Double?
     
     var presenter: PresenterProtocol?
     
@@ -54,6 +56,7 @@ final class MainViewController: UIViewController {
 
 // MARK: - ViewProtocol Impl
 extension MainViewController: ViewProtocol {
+
     func showAlert(result: String) {
         let alert = UIAlertController(title: "Notification",
                                       message: result,
@@ -68,12 +71,18 @@ extension MainViewController: ViewProtocol {
     func updateView(_ viewModel: ViewModel,_ topRate: String) {
         self.viewModel = viewModel
         self.topValue = nil
+        self.bottomValue = nil
         title = topRate
         firstCollectionView.reloadData()
         secondCollectionView.reloadData()
         print(#function)
     }
     
+    func updateFirstCollectionView(_ viewModel: ViewModel) {
+        self.viewModel = viewModel
+        firstCollectionView.reloadData()
+    }
+
     func updateSecondCollectionView(_ viewModel: ViewModel) {
         self.viewModel = viewModel
         secondCollectionView.reloadData()
@@ -120,17 +129,19 @@ extension MainViewController: UICollectionViewDelegate {
 
 // MARK: - CustomCellDelegate Impl
 extension MainViewController: CustomCellDelegate {
-    func didEditText(_ value: Double, _ isTop: Bool) {
+    
+    func didEditTextTop(_ value: Double?) {
         topValue = value
-        print(isTop)
-        if isTop == true {
-            presenter?.fetchRatesAndValues(topIndex: topIndex,
-                                           bottomIndex: bottomIndex,
-                                           topValue: topValue ?? 0)
-        } else {
-            print(isTop)
-        }
-        
+        presenter?.fetchRatesAndValuesFromTop(topIndex: topIndex,
+                                       bottomIndex: bottomIndex,
+                                       topValue: topValue)
+    }
+    
+    func didEditTextBottom(_ value: Double?) {
+        bottomValue = value
+        presenter?.fetchRatesAndValuesFromBottom(topIndex: topIndex,
+                                       bottomIndex: bottomIndex,
+                                       bottomValue: bottomValue)
     }
 }
 
