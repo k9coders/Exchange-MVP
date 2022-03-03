@@ -13,11 +13,11 @@ protocol PresenterProtocol {
     func loadData()
     func setUserDefaults()
     func fetchRates()
+    func exchangeCurrency()
     
     func fetchRatesAndValuesFromTop()
     func fetchRatesAndValuesFromBottom()
-    func exchangeCurrency()
-    
+
     func saveTopIndex(_ topIndex: Int)
     func saveBottomIndex(_ bottomIndex: Int)
     func saveTopValue(_ topValue: Double?)
@@ -31,13 +31,11 @@ final class MainPresenter {
     
     private let networkService: Networkable
     private var rates: RateModel?
-    private var firstValue: Double?// результат вычисления значения верхнего textField (bottomValue * rate)
-    private var secondValue: Double?
-    
-    var topIndex = 0 // индекс верхней ячейки
-    var bottomIndex = 0
-    private var topValue: Double? //значение верхнего textField
-    private var bottomValue: Double?
+
+    private var topIndex = 0 // индекс верхней ячейки
+    private var bottomIndex = 0
+    private var topValue: Double? //значение верхнего textField.
+    private var bottomValue: Double? //значение нижнего textField.
     private var isTop = false
     
     private var myBalance: [AccountModel] = []
@@ -46,24 +44,37 @@ final class MainPresenter {
         self.networkService = networkService
         setUserDefaults()
         fetchUserDefaultsToAccount()
+        
+        let _ = Timer.scheduledTimer(timeInterval: 5,
+                                     target: self,
+                                     selector: #selector(timerMethod),
+                                     userInfo: nil,
+                                     repeats: true)
+    }
+    
+    @objc func timerMethod() {
+        loadData()
     }
 }
 
 // MARK: - PresenterProtocol Impl
 extension MainPresenter: PresenterProtocol {
-    
+        
     func loadData() {
-        networkService.request(target: EndPoint.fetchRates, type: NetworkModel.self) { [weak self] result in
+        
+        networkService.request { result in
             switch result {
+                
             case .success(let response):
-                self?.rates = response.rates
-                self?.updateCells()
-                print(response.rates)
+                self.rates = response.rates
+                self.updateCells()
+                print(response)
             case .failure(let error):
                 print(error.localizedDescription)
             }
         }
     }
+
     
     // устанавливаем значения userDefaults
     func setUserDefaults() {
@@ -97,11 +108,11 @@ extension MainPresenter: PresenterProtocol {
             return
         }
         resultForTopBalance = Double(round(100 * (resultForTopBalance)) / 100)
-        var resultForBottomBalance = myBalance[bottomIndex].value + (secondValue ?? 0)
+        var resultForBottomBalance = myBalance[bottomIndex].value + (bottomValue ?? 0)
         resultForBottomBalance = Double(round(100 * (resultForBottomBalance)) / 100)
         print("from \(resultForTopBalance) to \(resultForBottomBalance)")
         
-        let secondValueRounded = Double(round(100 * (secondValue ?? 0.0)) / 100)
+        let secondValueRounded = Double(round(100 * (bottomValue ?? 0.0)) / 100)
         let result = """
         Receipt \(bottomCurrency.currency.currencyCharacter)\(secondValueRounded) to account \(bottomCurrency.currency.currencyName).
         Avilible balance: \(myBalance[bottomIndex].value)
@@ -141,14 +152,14 @@ extension MainPresenter: PresenterProtocol {
                                    isTop: true)
         
         if let topValue = topValue {
-            secondValue = topValue * (toRate / fromRate)
+            bottomValue = topValue * (toRate / fromRate)
         } else {
-            secondValue = nil
+            bottomValue = nil
         }
-        //self.secondValue = topValue * (toRate / fromRate)
+        
         let second = fetchViewModel(currentIndex: bottomIndex,
                                     currentRate: bottomRate,
-                                    currentValue: secondValue,
+                                    currentValue: bottomValue,
                                     isTop: false)
         
         let viewModel = ViewModel(first: first, second: second)
@@ -174,17 +185,15 @@ extension MainPresenter: PresenterProtocol {
         let bottomRate = "1\(bottomCurrency.currencyCharacter) - \(bottom)\(topCurrency.currencyCharacter)"
         
         if let bottomValue = bottomValue {
-            firstValue = bottomValue * (fromRate / toRate)
-            topValue = firstValue
-            secondValue = bottomValue
+            topValue = bottomValue * (fromRate / toRate)
+            self.bottomValue = bottomValue
         } else {
-            firstValue = nil
             topValue = nil
         }
         
         let first = fetchViewModel(currentIndex: topIndex,
                                    currentRate: topRate,
-                                   currentValue: firstValue,
+                                   currentValue: topValue,
                                    isTop: true)
     
         let second = fetchViewModel(currentIndex: bottomIndex,
@@ -221,8 +230,6 @@ extension MainPresenter: PresenterProtocol {
         
         topValue = nil
         bottomValue = nil
-        secondValue = nil
-        
         view?.updateView(viewModel, topRate)
     }
     
@@ -256,31 +263,76 @@ private extension MainPresenter {
         ]
     }
     
-    // собираем пустую модель, при загрузки rates
     func updateCells() {
-        let first = myBalance.map { account -> CellModel in
-            let cellModel = CellModel(balance: "You have: \(account.value)\(account.currency.currencyCharacter)",
-                                      rate: "1\(account.currency.currencyCharacter) = 1\(account.currency.currencyCharacter)",
-                                      currency: account.currency.currencyName,
-                                      value: nil,
-                                      isTop: true)
-            return cellModel
+        //создаем объект верхней и нижней ячейки
+        let topCurrency = myBalance[topIndex].currency
+        let bottomCurrency = myBalance[bottomIndex].currency
+        
+        //определяем rate активной ячейки верхнего и нижнего view
+        let fromRate = fetchRateValue(from: topCurrency)
+        let toRate = fetchRateValue(from: bottomCurrency)
+        
+        let top = String(format: "%.2f", toRate / fromRate)
+        let bottom = String(format: "%.2f", fromRate / toRate)
+        
+        let topRate = "1\(topCurrency.currencyCharacter) - \(top)\(bottomCurrency.currencyCharacter)"
+        let bottomRate = "1\(bottomCurrency.currencyCharacter) - \(bottom)\(topCurrency.currencyCharacter)"
+        
+        if isTop {
+            if let topValue = topValue {
+                bottomValue = topValue * (toRate / fromRate)
+            } else {
+                bottomValue = nil
+            }
+        } else {
+            if let bottomValue = bottomValue {
+                topValue = bottomValue * (fromRate / toRate)
+                self.bottomValue = bottomValue
+            } else {
+                topValue = nil
+            }
         }
         
-        let second = myBalance.map { account -> CellModel in
-            let cellModel = CellModel(balance: "You have: \(account.value)\(account.currency.currencyCharacter)",
-                                      rate: "1\(account.currency.currencyCharacter) = 1\(account.currency.currencyCharacter)",
-                                      currency: account.currency.currencyName,
-                                      value: nil,
-                                      isTop: false)
-            return cellModel
-        }
+        let first = fetchViewModel(currentIndex: topIndex,
+                                   currentRate: topRate,
+                                   currentValue: topValue,
+                                   isTop: true)
         
-        let viewModel = ViewModel(first: first,
-                                  second: second)
-        let topRate =  "1€ - 1.00€"
+        let second = fetchViewModel(currentIndex: bottomIndex,
+                                   currentRate: bottomRate,
+                                   currentValue: bottomValue,
+                                   isTop: false)
+        
+        let viewModel = ViewModel(first: first, second: second)
+        
         view?.updateView(viewModel, topRate)
+        print("timer done")
     }
+    // собираем пустую модель, при загрузки rates
+//    func updateCells() {
+//        let first = myBalance.map { account -> CellModel in
+//            let cellModel = CellModel(balance: "You have: \(account.value)\(account.currency.currencyCharacter)",
+//                                      rate: "1\(account.currency.currencyCharacter) = 1\(account.currency.currencyCharacter)",
+//                                      currency: account.currency.currencyName,
+//                                      value: nil,
+//                                      isTop: true)
+//            return cellModel
+//        }
+//
+//        let second = myBalance.map { account -> CellModel in
+//            let cellModel = CellModel(balance: "You have: \(account.value)\(account.currency.currencyCharacter)",
+//                                      rate: "1\(account.currency.currencyCharacter) = 1\(account.currency.currencyCharacter)",
+//                                      currency: account.currency.currencyName,
+//                                      value: nil,
+//                                      isTop: false)
+//            return cellModel
+//        }
+//
+//        let viewModel = ViewModel(first: first,
+//                                  second: second)
+//        let topRate =  "1€ - 1.00€"
+//        view?.updateView(viewModel, topRate)
+//    }
     
     // в зависимости от валюты возвращаем значение rate
     func fetchRateValue(from currency: CurrencyType) -> Double {
