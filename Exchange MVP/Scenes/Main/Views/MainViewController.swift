@@ -42,7 +42,6 @@ final class MainViewController: UIViewController {
     }
     
     @objc func didTapBarButton() {
-        print(#function)
         presenter?.exchangeCurrency()
     }
 }
@@ -66,7 +65,6 @@ extension MainViewController: ViewProtocol {
         title = topRate
         firstCollectionView.reloadData()
         secondCollectionView.reloadData()
-        print(#function)
     }
     
     func updateFirstCollectionView(_ viewModel: ViewModel) {
@@ -111,7 +109,6 @@ extension MainViewController: UICollectionViewDataSource {
         return cell
     }
 }
-
 
 //MARK: - UICollectionViewDelegate
 extension MainViewController: UICollectionViewDelegate {

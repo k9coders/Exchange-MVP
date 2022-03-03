@@ -45,7 +45,7 @@ final class MainPresenter {
         setUserDefaults()
         fetchUserDefaultsToAccount()
         
-        let _ = Timer.scheduledTimer(timeInterval: 5,
+        let _ = Timer.scheduledTimer(timeInterval: 30,
                                      target: self,
                                      selector: #selector(timerMethod),
                                      userInfo: nil,
@@ -68,13 +68,11 @@ extension MainPresenter: PresenterProtocol {
             case .success(let response):
                 self.rates = response.rates
                 self.updateCells()
-                print(response)
             case .failure(let error):
                 print(error.localizedDescription)
             }
         }
     }
-
     
     // устанавливаем значения userDefaults
     func setUserDefaults() {
@@ -95,7 +93,6 @@ extension MainPresenter: PresenterProtocol {
         }
         let topCurrency = myBalance[topIndex]
         let bottomCurrency = myBalance[bottomIndex]
-        print("\(topCurrency.currency.currencyName)  \(bottomCurrency.currency.currencyName)")
         
         guard topIndex != bottomIndex else {
             view?.showAlert(result: "you are trying to exchange the same currency!")
@@ -110,7 +107,6 @@ extension MainPresenter: PresenterProtocol {
         resultForTopBalance = Double(round(100 * (resultForTopBalance)) / 100)
         var resultForBottomBalance = myBalance[bottomIndex].value + (bottomValue ?? 0)
         resultForBottomBalance = Double(round(100 * (resultForBottomBalance)) / 100)
-        print("from \(resultForTopBalance) to \(resultForBottomBalance)")
         
         let secondValueRounded = Double(round(100 * (bottomValue ?? 0.0)) / 100)
         let result = """
@@ -306,7 +302,6 @@ private extension MainPresenter {
         let viewModel = ViewModel(first: first, second: second)
         
         view?.updateView(viewModel, topRate)
-        print("timer done")
     }
     // собираем пустую модель, при загрузки rates
 //    func updateCells() {

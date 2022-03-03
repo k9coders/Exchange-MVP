@@ -141,7 +141,8 @@ private extension CustomCell {
             exchangeRateLabel.bottomAnchor.constraint(equalTo: layoutMarginsGuide.bottomAnchor),
             
             amountTextField.topAnchor.constraint(equalTo: layoutMarginsGuide.topAnchor),
-            amountTextField.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor)
+            amountTextField.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
+            amountTextField.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor, constant: 110)
         ]
         NSLayoutConstraint.activate(constraints)
         
