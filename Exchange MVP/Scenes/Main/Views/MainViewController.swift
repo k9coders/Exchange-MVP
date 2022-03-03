@@ -48,7 +48,7 @@ final class MainViewController: UIViewController {
 
 // MARK: - ViewProtocol Impl
 extension MainViewController: ViewProtocol {
-
+    
     func showAlert(result: String) {
         let alert = UIAlertController(title: "Notification",
                                       message: result,
@@ -71,7 +71,7 @@ extension MainViewController: ViewProtocol {
         self.viewModel = viewModel
         firstCollectionView.reloadData()
     }
-
+    
     func updateSecondCollectionView(_ viewModel: ViewModel) {
         self.viewModel = viewModel
         secondCollectionView.reloadData()

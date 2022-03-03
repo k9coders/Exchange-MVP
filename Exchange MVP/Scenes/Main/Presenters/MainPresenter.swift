@@ -17,7 +17,7 @@ protocol PresenterProtocol {
     
     func fetchRatesAndValuesFromTop()
     func fetchRatesAndValuesFromBottom()
-
+    
     func saveTopIndex(_ topIndex: Int)
     func saveBottomIndex(_ bottomIndex: Int)
     func saveTopValue(_ topValue: Double?)
@@ -31,7 +31,7 @@ final class MainPresenter {
     
     private let networkService: Networkable
     private var rates: RateModel?
-
+    
     private var topIndex = 0 // индекс верхней ячейки
     private var bottomIndex = 0
     private var topValue: Double? //значение верхнего textField.
@@ -59,7 +59,7 @@ final class MainPresenter {
 
 // MARK: - PresenterProtocol Impl
 extension MainPresenter: PresenterProtocol {
-        
+    
     func loadData() {
         
         networkService.request { result in
@@ -159,7 +159,7 @@ extension MainPresenter: PresenterProtocol {
                                     isTop: false)
         
         let viewModel = ViewModel(first: first, second: second)
-
+        
         view?.updateSecondCollectionView(viewModel)
     }
     
@@ -191,14 +191,14 @@ extension MainPresenter: PresenterProtocol {
                                    currentRate: topRate,
                                    currentValue: topValue,
                                    isTop: true)
-    
+        
         let second = fetchViewModel(currentIndex: bottomIndex,
                                     currentRate: bottomRate,
                                     currentValue: bottomValue,
                                     isTop: false)
         
         let viewModel = ViewModel(first: first, second: second)
-
+        
         view?.updateFirstCollectionView(viewModel)
     }
     
@@ -295,39 +295,14 @@ private extension MainPresenter {
                                    isTop: true)
         
         let second = fetchViewModel(currentIndex: bottomIndex,
-                                   currentRate: bottomRate,
-                                   currentValue: bottomValue,
-                                   isTop: false)
+                                    currentRate: bottomRate,
+                                    currentValue: bottomValue,
+                                    isTop: false)
         
         let viewModel = ViewModel(first: first, second: second)
         
         view?.updateView(viewModel, topRate)
     }
-    // собираем пустую модель, при загрузки rates
-//    func updateCells() {
-//        let first = myBalance.map { account -> CellModel in
-//            let cellModel = CellModel(balance: "You have: \(account.value)\(account.currency.currencyCharacter)",
-//                                      rate: "1\(account.currency.currencyCharacter) = 1\(account.currency.currencyCharacter)",
-//                                      currency: account.currency.currencyName,
-//                                      value: nil,
-//                                      isTop: true)
-//            return cellModel
-//        }
-//
-//        let second = myBalance.map { account -> CellModel in
-//            let cellModel = CellModel(balance: "You have: \(account.value)\(account.currency.currencyCharacter)",
-//                                      rate: "1\(account.currency.currencyCharacter) = 1\(account.currency.currencyCharacter)",
-//                                      currency: account.currency.currencyName,
-//                                      value: nil,
-//                                      isTop: false)
-//            return cellModel
-//        }
-//
-//        let viewModel = ViewModel(first: first,
-//                                  second: second)
-//        let topRate =  "1€ - 1.00€"
-//        view?.updateView(viewModel, topRate)
-//    }
     
     // в зависимости от валюты возвращаем значение rate
     func fetchRateValue(from currency: CurrencyType) -> Double {

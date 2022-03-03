@@ -65,7 +65,7 @@ final class CustomCell: UICollectionViewCell {
 
 // MARK: - UITextFieldDelegate Impl
 extension CustomCell: UITextFieldDelegate {
-
+    
 }
 //MARK: - public method
 extension CustomCell {
@@ -75,7 +75,7 @@ extension CustomCell {
         currencyNameLabel.text = model.currency
         currentBalanceLabel.text = model.balance
         exchangeRateLabel.text = model.rate
-
+        
         if let value = model.value {
             let sign: Character = isTop ? "-" : "+"
             amountTextField.text = "\(sign)\(String(format: "%.2f", value))"
