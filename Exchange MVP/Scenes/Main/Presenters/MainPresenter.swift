@@ -12,11 +12,16 @@ import Foundation
 protocol PresenterProtocol {
     func loadData()
     func setUserDefaults()
-    func fetchRates(topIndex: Int, bottomIndex: Int)
+    func fetchRates()
     
-    func fetchRatesAndValuesFromTop(topIndex: Int, bottomIndex: Int, topValue: Double?)
-    func fetchRatesAndValuesFromBottom(topIndex: Int, bottomIndex: Int, bottomValue: Double?)
-    func exchangeCurrency(topValue: Double?, topIndex: Int, bottomIndex: Int)
+    func fetchRatesAndValuesFromTop()
+    func fetchRatesAndValuesFromBottom()
+    func exchangeCurrency()
+    
+    func saveTopIndex(_ topIndex: Int)
+    func saveBottomIndex(_ bottomIndex: Int)
+    func saveTopValue(_ topValue: Double?)
+    func saveBottomValue(_ bottomValue: Double?)
 }
 
 // MARK: - Presenter
@@ -29,8 +34,8 @@ final class MainPresenter {
     private var firstValue: Double?// результат вычисления значения верхнего textField (bottomValue * rate)
     private var secondValue: Double?
     
-    private var topIndex = 0 // индекс верхней ячейки
-    private var bottomIndex = 0
+    var topIndex = 0 // индекс верхней ячейки
+    var bottomIndex = 0
     private var topValue: Double? //значение верхнего textField
     private var bottomValue: Double?
     private var isTop = false
@@ -71,7 +76,7 @@ extension MainPresenter: PresenterProtocol {
         }
     }
     
-    func exchangeCurrency(topValue: Double?, topIndex: Int, bottomIndex: Int) {
+    func exchangeCurrency() {
         
         guard topValue != nil else {
             view?.showAlert(result: "Value is empty!")
@@ -80,6 +85,11 @@ extension MainPresenter: PresenterProtocol {
         let topCurrency = myBalance[topIndex]
         let bottomCurrency = myBalance[bottomIndex]
         print("\(topCurrency.currency.currencyName)  \(bottomCurrency.currency.currencyName)")
+        
+        guard topIndex != bottomIndex else {
+            view?.showAlert(result: "you are trying to exchange the same currency!")
+            return
+        }
         
         var resultForTopBalance = myBalance[topIndex].value - (topValue ?? 0)
         guard resultForTopBalance >= 0 else {
@@ -109,9 +119,8 @@ extension MainPresenter: PresenterProtocol {
     }
     
     //метод считает введенное value по rates и обновляет нижний collectionView
-    func fetchRatesAndValuesFromTop(topIndex: Int, bottomIndex: Int,  topValue: Double?) {
+    func fetchRatesAndValuesFromTop() {
         isTop = true
-        self.topValue = topValue
         //создаем объект верхней и нижней ячейки
         let topCurrency = myBalance[topIndex].currency
         let bottomCurrency = myBalance[bottomIndex].currency
@@ -148,10 +157,9 @@ extension MainPresenter: PresenterProtocol {
     }
     
     //метод считает введенное value по rates и обновляет верхний collectionView
-    func fetchRatesAndValuesFromBottom(topIndex: Int, bottomIndex: Int, bottomValue: Double?) {
+    func fetchRatesAndValuesFromBottom() {
         //создаем объект верхней и нижней ячейки
         isTop = false
-        self.bottomValue = bottomValue
         let topCurrency = myBalance[topIndex].currency
         let bottomCurrency = myBalance[bottomIndex].currency
         
@@ -167,8 +175,11 @@ extension MainPresenter: PresenterProtocol {
         
         if let bottomValue = bottomValue {
             firstValue = bottomValue * (fromRate / toRate)
+            topValue = firstValue
+            secondValue = bottomValue
         } else {
             firstValue = nil
+            topValue = nil
         }
         
         let first = fetchViewModel(currentIndex: topIndex,
@@ -187,7 +198,7 @@ extension MainPresenter: PresenterProtocol {
     }
     
     //метод обновляет все collectionView и расчитывает rates, при скролле
-    func fetchRates(topIndex: Int, bottomIndex: Int) {
+    func fetchRates() {
         //создаем объект верхней и нижней ячейки
         let topCurrency = myBalance[topIndex].currency
         let bottomCurrency = myBalance[bottomIndex].currency
@@ -208,8 +219,29 @@ extension MainPresenter: PresenterProtocol {
         
         let viewModel = ViewModel(first: first, second: second)
         
+        topValue = nil
+        bottomValue = nil
+        secondValue = nil
+        
         view?.updateView(viewModel, topRate)
     }
+    
+    func saveTopIndex(_ topIndex: Int) {
+        self.topIndex = topIndex
+    }
+    
+    func saveBottomIndex(_ bottomIndex: Int) {
+        self.bottomIndex = bottomIndex
+    }
+    
+    func saveTopValue(_ topValue: Double?) {
+        self.topValue = topValue
+    }
+    
+    func saveBottomValue(_ bottomValue: Double?) {
+        self.bottomValue = bottomValue
+    }
+    
 }
 
 // MARK: - Private methods

@@ -34,11 +34,6 @@ final class MainViewController: UIViewController {
     //модель данных для collectionView
     private var viewModel: ViewModel?
     
-    private var topIndex = 0 // индекс верхней ячейки
-    private var bottomIndex = 0
-    private var topValue: Double? //значение верхнего textField
-    private var bottomValue: Double?
-    
     var presenter: PresenterProtocol?
     
     override func viewDidLoad() {
@@ -48,9 +43,7 @@ final class MainViewController: UIViewController {
     
     @objc func didTapBarButton() {
         print(#function)
-        presenter?.exchangeCurrency(topValue: topValue,
-                                    topIndex: topIndex,
-                                    bottomIndex: bottomIndex)
+        presenter?.exchangeCurrency()
     }
 }
 
@@ -65,13 +58,11 @@ extension MainViewController: ViewProtocol {
                                       style: .default))
         present(alert, animated: true)
         
-        presenter?.fetchRates(topIndex: topIndex, bottomIndex: bottomIndex)
+        presenter?.fetchRates()
     }
     
     func updateView(_ viewModel: ViewModel,_ topRate: String) {
         self.viewModel = viewModel
-        self.topValue = nil
-        self.bottomValue = nil
         title = topRate
         firstCollectionView.reloadData()
         secondCollectionView.reloadData()
@@ -131,17 +122,13 @@ extension MainViewController: UICollectionViewDelegate {
 extension MainViewController: CustomCellDelegate {
     
     func didEditTextTop(_ value: Double?) {
-        topValue = value
-        presenter?.fetchRatesAndValuesFromTop(topIndex: topIndex,
-                                       bottomIndex: bottomIndex,
-                                       topValue: topValue)
+        presenter?.saveTopValue(value)
+        presenter?.fetchRatesAndValuesFromTop()
     }
     
     func didEditTextBottom(_ value: Double?) {
-        bottomValue = value
-        presenter?.fetchRatesAndValuesFromBottom(topIndex: topIndex,
-                                       bottomIndex: bottomIndex,
-                                       bottomValue: bottomValue)
+        presenter?.saveBottomValue(value)
+        presenter?.fetchRatesAndValuesFromBottom()
     }
 }
 
@@ -154,15 +141,15 @@ extension MainViewController: UIScrollViewDelegate {
                   let indexPath = firstCollectionView.indexPath(for: cell) else {
                       return
                   }
-            topIndex = indexPath.item
+            presenter?.saveTopIndex(indexPath.item)
         } else if scrollView == secondCollectionView {
             guard let cell = secondCollectionView.visibleCells.first,
                   let indexPath = secondCollectionView.indexPath(for: cell) else {
                       return
                   }
-            bottomIndex = indexPath.item
+            presenter?.saveBottomIndex(indexPath.item)
         }
-        presenter?.fetchRates(topIndex: topIndex, bottomIndex: bottomIndex)
+        presenter?.fetchRates()
     }
 }
 
